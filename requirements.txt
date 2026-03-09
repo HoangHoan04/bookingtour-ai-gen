@@ -1,0 +1,4 @@
+fastapi~=0.128.0
+pydantic~=2.12.5
+langchain-google-genai~=4.2.0
+langchain-core~=1.2.7
