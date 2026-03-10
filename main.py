@@ -18,7 +18,6 @@ async def lifespan(app: FastAPI):
     init_knowledge()
     yield
 
-# --- CẤU HÌNH ---
 
 app = FastAPI(title="Travel AI Microservice with Gemini", lifespan=lifespan)
 
@@ -28,10 +27,10 @@ origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins, # List of allowed origins
-    allow_credentials=True, # Allow cookies/authorization headers to be included in requests
-    allow_methods=["POST"],    # Allow all methods (GET, POST, PUT, DELETE, etc)
-    allow_headers=["*"],    # Allow all headers
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["POST"],
+    allow_headers=["*"],
 )
 
 llm = ChatGoogleGenerativeAI(
