@@ -3,7 +3,16 @@ import os
 import google.generativeai as genai
 from dotenv import load_dotenv
 
-genai.configure(api_key="AIzaSyA4ps36fsCTR2KuLvIub7i_v8BrAt8X1vI")
+# Load environment variables
+load_dotenv()
+
+# Get API key from environment
+api_key = os.getenv("GOOGLE_API_KEY")
+if not api_key:
+    print("❌ GOOGLE_API_KEY không tìm thấy. Vui lòng set trong file .env")
+    exit(1)
+
+genai.configure(api_key=api_key)
 
 print("Đang lấy danh sách models...")
 try:

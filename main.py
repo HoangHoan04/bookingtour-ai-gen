@@ -1,6 +1,25 @@
 import os
 from fastapi import FastAPI, HTTPException, Header, Depends
 
+# Load environment variables (only in non-production)
+if os.getenv("NODE_ENV") != "production":
+    try:
+        from dotenv import load_dotenv
+        import pathlib
+        
+        # Load appropriate .env file based on environment
+        env = os.getenv("NODE_ENV", "development")
+        env_file = ".env.dev" if env == "development" else ".env"
+        env_path = pathlib.Path(__file__).parent / env_file
+        
+        if env_path.exists():
+            load_dotenv(dotenv_path=env_path)
+            print(f"✅ Loaded environment from: {env_file}")
+        else:
+            print(f"⚠️  {env_file} not found, using system environment variables")
+    except ImportError:
+        print("⚠️  dotenv not available (production environment)")
+
 # 1. Import thư viện Gemini & LangChain
 from langchain_google_genai import ChatGoogleGenerativeAI
 
@@ -22,9 +41,9 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Travel AI Microservice with Gemini", lifespan=lifespan)
 
-origins = [
-    "http://localhost:3350",
-]
+# Đọc CORS origins từ environment variable
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3350").split(",")
+origins = [origin.strip() for origin in ALLOWED_ORIGINS]
 
 app.add_middleware(
     CORSMiddleware,
@@ -64,7 +83,8 @@ CÂU HỎI CỦA KHÁCH:
 """
 
 async def verify_key(x_api_key: str = Header(...)):
-    if x_api_key != "SECRET_KEY_BETWEEN_NODE_AND_PYTHON":
+    EXPECTED_API_KEY = os.getenv("API_SECRET_KEY", "SECRET_KEY_BETWEEN_NODE_AND_PYTHON")
+    if x_api_key != EXPECTED_API_KEY:
         raise HTTPException(status_code=403, detail="Unauthorized Access")
 
 rephrase_prompt = ChatPromptTemplate.from_messages([
@@ -132,4 +152,9 @@ async def chat(
 ):
     answer = chat_with_memory(payload.question)
     return ChatResponse(answer=answer)
+
+@app.get("/health")
+async def health_check():
+    return {"status": "ok", "service": "bookingtour-ai-gen"}
+
 # Chạy server: uvicorn main:app --reload --port 8000
