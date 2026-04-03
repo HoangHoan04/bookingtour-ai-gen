@@ -4,7 +4,7 @@ from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_core.documents import Document
 
-DB_URL = "postgresql+psycopg2://postgres:root@localhost:5432/booking_tour_dev"
+DB_URL = os.getenv("DATABASE_URL", "postgresql+psycopg2://postgres:root@localhost:5432/booking_tour_dev")
 
 vector_store = None
 
@@ -58,7 +58,6 @@ def load_tours_from_db():
         print(f"❌ Lỗi kết nối PostgreSQL: {e}")
         return []
 
-# 2. Tạo Vector Store (Bộ não chứa kiến thức)
 def create_vector_db():
     print("⏳ Đang tải dữ liệu từ PostgreSQL...")
     docs = load_tours_from_db()
@@ -69,10 +68,8 @@ def create_vector_db():
 
     print(f"✅ Đã tải {len(docs)} tours. Đang tạo vector...")
 
-    # Dùng Gemini Embedding
     embeddings = HuggingFaceEmbeddings(model_name="keepitreal/vietnamese-sbert")
 
-    # Tạo Vector DB (FAISS)
     return FAISS.from_documents(docs, embeddings)
 
 

@@ -1,9 +1,10 @@
+import os
 from langchain_community.utilities import SQLDatabase
 from langchain_community.agent_toolkits import create_sql_agent
 from langchain_google_genai import ChatGoogleGenerativeAI
 from sqlalchemy import create_engine
 
-DB_URL = "postgresql+psycopg2://postgres:root@localhost:5432/booking_tour_dev"
+DB_URL = os.getenv("DATABASE_URL", "postgresql+psycopg2://postgres:root@localhost:5432/booking_tour_dev")
 
 def get_sql_agent():
     db = SQLDatabase.from_uri(DB_URL, include_tables=['tours'])
