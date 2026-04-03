@@ -13,7 +13,7 @@ if os.getenv("NODE_ENV") != "production":
         env_path = pathlib.Path(__file__).parent / env_file
         
         if env_path.exists():
-            load_dotenv(dotenv_path=env_path)
+            load_dotenv(dotenv_path=env_path, override=True)
             print(f"✅ Loaded environment from: {env_file}")
         else:
             print(f"⚠️  {env_file} not found, using system environment variables")
