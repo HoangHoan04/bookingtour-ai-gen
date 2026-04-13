@@ -87,10 +87,8 @@ async def chat_with_memory(user_question: str):
     intent = intent_response.content.strip().upper()
     print(f"DEBUG: Intent detected -> {intent}")
     if "SQL" in intent:
-        # Gọi SQL Agent để đếm/thống kê chính xác trong Database
         response_content = await ask_database_agent(user_question)
     else:
-        # Chạy luồng RAG (Vector Search) để tư vấn cảm hứng
         if len(chat_history) > 0:
             rephrase_chain = rephrase_prompt | llm_router
             standalone_query = rephrase_chain.invoke({
@@ -100,7 +98,6 @@ async def chat_with_memory(user_question: str):
         else:
             standalone_query = user_question
 
-        # Lấy Top-K ngữ cảnh (chỉ dùng cho tư vấn)
         docs = find_relevant_tours(standalone_query, k=3)
         context = "\n---\n".join(docs)
 
@@ -114,7 +111,7 @@ async def chat_with_memory(user_question: str):
 
     chat_history.append(HumanMessage(content=user_question))
     chat_history.append(AIMessage(content=response_content))
-    if len(chat_history) > 10: # Giữ 5 cặp hội thoại
+    if len(chat_history) > 10:
         chat_history = chat_history[-10:]
 
     return response_content

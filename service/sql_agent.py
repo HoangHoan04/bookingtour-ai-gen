@@ -7,7 +7,7 @@ from sqlalchemy import create_engine
 DB_URL = os.getenv("DATABASE_URL", "postgresql+psycopg2://postgres:root@localhost:5432/booking_tour_dev")
 
 def get_sql_agent():
-    db = SQLDatabase.from_uri(DB_URL, include_tables=['tours'])
+    db = SQLDatabase.from_uri(DB_URL, include_tables=['tours', 'tour_details', 'tour_prices'])
 
     llm = ChatGoogleGenerativeAI(
         model="gemini-2.5-flash",
@@ -16,26 +16,27 @@ def get_sql_agent():
     )
 
     prefix_prompt = """
-        Bạn là một chuyên gia phân tích dữ liệu SQL.
-        Nhiệm vụ: Trả lời câu hỏi người dùng bằng cách truy vấn Database PostgreSQL.
+            Bạn là một chuyên gia PostgreSQL. 
+            Nhiệm vụ: Trình bày dữ liệu tour du lịch từ Database.
 
-        QUY TẮC QUAN TRỌNG VỀ TÊN CỘT (CỰC KỲ QUAN TRỌNG):
-        1. Database này sử dụng PostgreSQL.
-        2. Các tên cột được viết kiểu camelCase (ví dụ: shortDescription, viewCount).
-        3. Khi viết SQL, BẮT BUỘC phải để tên cột trong dấu ngoặc kép đôi ("").
-           - SAI: SELECT shortDescription FROM tours
-           - ĐÚNG: SELECT "shortDescription" FROM tours
+            QUY TẮC ĐỊNH DẠNG (BẮT BUỘC):
+            1. Khi bạn đã tìm thấy dữ liệu và muốn trả lời người dùng, bạn PHẢI bắt đầu bằng cụm từ: "Final Answer:".
+            2. Nếu không có từ khóa "Final Answer:", hệ thống sẽ báo lỗi.
+            3. Tuyệt đối không giải thích thêm sau khi đã có Final Answer.
 
-        4. Chỉ trả về thông tin người dùng hỏi, không trả lời thừa.
-        5. Nếu không tìm thấy thông tin, hãy nói "Tôi không tìm thấy dữ liệu phù hợp".
-        """
+            QUY TẮC SQL (CỰC KỲ QUAN TRỌNG):
+            - Luôn dùng dấu ngoặc kép cho tên cột camelCase: "shortDescription", "startLocation", "priceType".
+            - Để lấy thông tin giá và ngày, bạn cần JOIN: tours -> tour_details -> tour_prices.
+            - Nếu hỏi số lượng, hãy dùng COUNT(*).
+            """
 
     agent_executor = create_sql_agent(
         llm=llm,
         db=db,
         agent_type="zero-shot-react-description",
         verbose=True,
-        prefix=prefix_prompt
+        prefix=prefix_prompt,
+        handle_parsing_errors="Lỗi định dạng! Hãy nhớ câu trả lời cuối cùng phải bắt đầu bằng 'Final Answer: ' và trình bày nội dung ngay sau đó."
     )
 
     return agent_executor

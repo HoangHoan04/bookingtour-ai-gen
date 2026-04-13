@@ -16,22 +16,45 @@ def load_tours_from_db():
 
         sql = text("""
                     SELECT 
-                        id, 
-                        title, 
-                        slug, 
-                        location, 
-                        durations, 
-                        "shortDescription", 
-                        highlights, 
-                        rating,
-                        status
-                    FROM tours 
-                    WHERE status = 'active' OR status = 'ACTIVE'
+                        t.id, 
+                        t.title, 
+                        t.slug, 
+                        t.location, 
+                        t.durations, 
+                        t."shortDescription", 
+                        t.highlights, 
+                        t.rating,
+                        t.status,
+                        jsonb_agg(DISTINCT jsonb_build_object(
+                            'startLocation', td."startLocation",
+                            'startDay', td."startDay",
+                            'endDay', td."endDay",
+                            'prices', (
+                                SELECT jsonb_agg(jsonb_build_object('type', tp."priceType", 'value', tp.price))
+                                FROM tour_prices tp 
+                                WHERE tp."tourDetailId" = td.id
+                            )
+                        )) as details
+                    FROM tours t
+                    JOIN tour_details td ON td."tourId" = t.id
+                    WHERE t.status = 'active' OR t.status = 'ACTIVE'
+                    GROUP BY t.id;
                 """)
         result = connection.execute(sql)
 
         documents = []
         for row in result:
+            detail_strings = []
+            for detail in row.details:
+                price_info = ", ".join([f"{p['type']}: {p['value']:,.0f}đ" for p in detail['prices']])
+
+                detail_str = (
+                    f"- Khởi hành từ {detail['startLocation']} "
+                    f"({detail['startDay']} đến {detail['endDay']}): {price_info}"
+                )
+                detail_strings.append(detail_str)
+
+            all_details_text = "\n".join(detail_strings)
             content = (
                 f"Tên Tour: {row.title}. "
                 f"Địa điểm: {row.location}. "
@@ -39,6 +62,7 @@ def load_tours_from_db():
                 f"Điểm nổi bật: {row.highlights or 'Không có'}. "
                 f"Mô tả: {row.shortDescription}. "
                 f"Đánh giá khách hàng: {row.rating}/5 sao."
+                f"Thông tin chi tiết các đợt khởi hành:\n{all_details_text}"
             )
 
             doc = Document(
